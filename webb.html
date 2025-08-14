@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ethereum OS — 7 Gamified Mechanics</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#e9edf1;
+      --panel:#f5f7fa;
+      --ink:#1b2330;
+      --ink-dim:#5a667a;
+      --accent:#00d88a;
+      --card:#ffffff;
+      --shadow: 0 8px 30px rgba(0,0,0,.08);
+      --win:#dfe7ef;
+
+      /* glow colors for buttons */
+      --glow-reflect: linear-gradient(90deg,#89c2ff,#c9ffea);
+      --glow-auto:    linear-gradient(90deg,#ffc46b,#ffe69b);
+      --glow-ponzi:   linear-gradient(90deg,#f59ee0,#ffc6e7);
+      --glow-pump:    linear-gradient(90deg,#a3ffb2,#e0ffe2);
+      --glow-burn:    linear-gradient(90deg,#ff9f9f,#ffd2b3);
+      --glow-reaper:  linear-gradient(90deg,#d6dae6,#f0f3ff);
+      --glow-gamble:  linear-gradient(90deg,#b3a6ff,#d9c8ff);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--ink); font-family:"VT323", monospace; letter-spacing:.2px;
+    }
+    .wrap{
+      max-width:1100px; margin:0 auto; padding:28px 18px 80px;
+    }
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      width:42px; height:42px; border-radius:10px; background:#e8f8f1; display:grid; place-items:center; box-shadow: var(--shadow);
+      border:2px solid #bdebd6;
+    }
+    .logo:before{content:">_"; font-size:22px; color:#17c37b}
+    h1{font-size:42px; margin:0; line-height:1}
+    .subtitle{color:var(--ink-dim); font-size:22px; margin:4px 0 0}
+
+    .window{
+      background:var(--panel); border:2px solid #c9d6e3; border-radius:14px; box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .win-title{
+      display:flex; align-items:center; gap:8px; padding:10px 12px; background:var(--win); border-bottom:2px solid #c9d6e3;
+      font-size:22px;
+    }
+    .dots{display:flex; gap:8px; margin-right:8px}
+    .dot{width:12px; height:12px; border-radius:50%; background:#e1e6ef; border:1px solid #b8c5d6}
+    .dot:nth-child(1){background:#ff605c; border-color:#ff8c88}
+    .dot:nth-child(2){background:#ffbd44; border-color:#ffd38d}
+    .dot:nth-child(3){background:#00ca4e; border-color:#4ee486}
+
+    .intro{padding:18px 16px 8px; font-size:22px; color:var(--ink);}
+    .intro p{margin:0 0 14px}
+
+    .grid{
+      display:grid; grid-template-columns:repeat(2,1fr); gap:16px; padding:16px;
+    }
+    @media (min-width:880px){ .grid{grid-template-columns:repeat(3,1fr);} }
+    @media (max-width:560px){ .grid{grid-template-columns:1fr;} }
+
+.chips{
+      position:relative; font-size:26px; background:var(--card); border-radius:14px; padding:12px 16px; border:2px solid #d9e4ef;
+      filter:saturate(1.05); cursor:pointer; transition: transform .08s ease; box-shadow: var(--shadow);
+    }
+    .chips:active{ transform: translateY(1px) scale(.99); }
+    .chips .lbl{ display:flex; align-items:center; justify-content:center; gap:10px; }
+    .chips .emoji{font-size:22px}
+    .chips:hover{ box-shadow: 0 10px 24px rgba(0,0,0,.08); }
+
+
+
+    .chip{
+      position:relative; font-size:26px; background:var(--card); border-radius:14px; padding:12px 16px; border:2px solid #d9e4ef;
+      filter:saturate(1.05); cursor:pointer; transition: transform .08s ease; box-shadow: var(--shadow);
+    }
+    .chip:active{ transform: translateY(1px) scale(.99); }
+    .chip .lbl{ display:flex; align-items:center; justify-content:center; gap:10px; }
+    .chip .emoji{font-size:22px}
+
+    /* glowing outlines using ::before */
+    .chip::before{
+      content:""; position:absolute; inset:-2px; border-radius:14px; z-index:-1; filter: blur(6px); opacity:.9;
+      background:var(--glow-reflect);
+      transition:opacity .2s ease;
+    }
+    .chip[data-kind="reflect"]::before{ background:var(--glow-reflect); }
+    .chip[data-kind="auto"]::before{    background:var(--glow-auto); }
+    .chip[data-kind="ponzi"]::before{   background:var(--glow-ponzi); }
+    .chip[data-kind="pump"]::before{    background:var(--glow-pump); }
+    .chip[data-kind="burn"]::before{    background:var(--glow-burn); }
+    .chip[data-kind="reaper"]::before{  background:var(--glow-reaper); }
+    .chip[data-kind="gamble"]::before{  background:var(--glow-gamble); }
+
+    .chip:hover{ box-shadow: 0 10px 24px rgba(0,0,0,.08); }
+
+    /* Modal */
+    dialog{ border:none; border-radius:16px; padding:0; width:min(720px,90vw); box-shadow: 0 24px 80px rgba(0,0,0,.25); }
+    .modal{
+      position:relative; background:var(--card); border:2px solid #c9d6e3; border-radius:16px; overflow:hidden;
+    }
+    .modal-h{
+      display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:var(--win);
+      border-bottom:2px solid #c9d6e3; font-size:26px;
+    }
+    .modal-c{ padding:18px; font-size:22px; line-height:1.35; }
+    .modal-f{ display:flex; justify-content:space-between; gap:10px; padding:12px 14px; background:#f4f7fb; border-top:2px solid #c9d6e3; }
+    button{ font-family:"VT323", monospace; font-size:22px; padding:8px 14px; border-radius:10px; border:2px solid #bcd2e6; background:#fff; cursor:pointer; }
+    button:hover{ filter:brightness(1.02); box-shadow:0 6px 18px rgba(0,0,0,.06); }
+    .ghost{ background:#f6fbff; }
+
+    .footer{ text-align:center; color:var(--ink-dim); margin-top:20px; font-size:20px; }
+    .tiny{ opacity:.7 }
+    .kbd{ font-size:20px; padding:.2rem .5rem; border:2px solid #bcd2e6; border-radius:8px; background:#fff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Ethereum OS — 7 Gamified Mechanics</h1>
+          <p class="subtitle">Composable, modifiable, and designed to keep you engaged.</p>
+        </div>
+      </div>
+      <div>
+        <span class="kbd" title="Tip">Click a card to view & copy text</span>
+      </div>
+    </header>
+
+    <section class="window">
+      <div class="win-title"><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>Intro</div>
+      <div class="intro">
+        <p><strong>Ethereum OS brings 7 gamified mechanics you control</strong>—all composable and all designed to keep you engaged with the token you create.</p>
+        <p>All these mechanics were collected from the most innovative and gamified DeFi practices to equip you with the tools that will allow you to find your own approach for your token’s price discovery and roadmap of events.</p>
+        <p>All of them are composable and modifiable, which allows you to experiment and enjoy the ride.</p>
+      </div>
+
+      <div class="grid" id="grid">
+        <button class="chip" data-kind="reflect" data-title="Reflect" data-emoji="🪙" data-text="Reflect—the backbone of Eth OS—pure ETH rewards generated from trading volume, while preserving a 0 tax policy. No need to press any button except “Buy” to begin collecting a portion of trading fees in ETH. Reflect also supplies other mechanics with ETH based on their settings."><span class="lbl">Reflect <span class="emoji" aria-hidden>🪙</span></span></button>
+
+        <button class="chip" data-kind="auto" data-title="Auto LP" data-emoji="⚙️" data-text="Auto LP—you want to expand Reflect functionality? Then you may add this mechanic to your token. Auto LP will automatically add a portion of Reflect-generated ETH and will add it to LP in a single-sided way, supplying it with additional tokens. This mechanic is designed to make your LP more dense."><span class="lbl">Auto LP <span class="emoji" aria-hidden>⚙️</span></span></button>
+
+        <button class="chip" data-kind="ponzi" data-title="Ponzi" data-emoji="🔺" data-text="Ponzi—missed those juicy APYs? This mechanic is for you! Once you purchase the token, you begin to accumulate additional tokens based on owner-defined daily APY. With this mechanic, you may incentivize holding your token to accumulate more of it."><span class="lbl">Ponzi <span class="emoji" aria-hidden>🔺</span></span></button>
+
+        <button class="chip" data-kind="pump" data-title="Pump" data-emoji="🔺" data-text="Pump—the simplest mechanic to make the number go up manually by X% daily via the “Pump” button. Once the button is pressed, the protocol burns tokens in LP, making the price go up. This mechanism incentivizes users to purchase the token due to its price growth."><span class="lbl">Pump <span class="emoji" aria-hidden>🔺</span></span></button>
+
+        <button class="chip" data-kind="burn" data-title="Burn" data-emoji="🔥" data-text="Burn—what’s DeFi without burn? We decided to include it too. This mechanism burns tokens on buy/sell transactions based on its percentage value. Also, this feature will make your token a non-zero tax, since it will deliver fewer tokens because of the burn. Burn will definitely have a positive impact on the token’s price."><span class="lbl">Burn <span class="emoji" aria-hidden>🔥</span></span></button>
+
+        <button class="chip" data-kind="reaper" data-title="Reaper" data-emoji="💀" data-text="Reaper—say GM or you’ll die. You need to avoid death by pressing the “Say GM!” button every X hours to keep your tokens alive, so you can trade and transfer them. This mechanic is aimed to keep users active while also eliminating the bots. Once a user becomes inactive, it reduces 'sell pressure,' thereby having a positive impact on the token’s price."><span class="lbl">Reaper <span class="emoji" aria-hidden>💀</span></span></button>
+
+        <button class="chip" data-kind="gamble" data-title="Gamble" data-emoji="🎲" data-text="Gamble—the most entertaining one! Every X hours, the protocol rewards the last buyer with ETH, so hurry up and buy the token before the countdown ends to become a potential winner, since the prize could be enormous. The game never stops as the protocol splits the prize each time for the next round, making it fun to participate since there’s always a chance to win."><span class="lbl">Gamble <span class="emoji" aria-hidden>🎲</span></span></button>
+
+<form action="https://x.com/Ethereum_OS/status/1955680740232024083" target="_blank" style="display:inline;">
+  <button type="submit" class="chips">
+    <span class="lbl">X Post <span class="emoji" aria-hidden>✉️</span></span>
+  </button>
+</form>
+
+<form action="https://ethos.vision/" target="_blank" style="display:inline;">
+  <button type="submit" class="chips">
+    <span class="lbl">Website <span class="emoji" aria-hidden>🌐</span></span>
+  </button>
+</form>
+
+      </div>
+    </section>
+
+    <p class="footer tiny">Unofficial fan-made page inspired by the Eth OS announcement.</p>
+  </div>
+
+  <!-- Modal -->
+  <dialog id="dlg">
+    <div class="modal" role="document">
+      <div class="modal-h">
+        <span id="dlgTitle">Mechanic</span>
+        <button id="close">✕</button>
+      </div>
+      <div class="modal-c">
+        <p id="dlgText"></p>
+        <div id="burnSimulation" style="display:none; margin-top:12px; font-size:20px; color:var(--ink-dim);"></div>
+        <button id="burnAction" style="display:none; margin-top:10px;">🔥 Execute Burn</button>
+<div id="controlZone" style="margin-top:12px; font-size:20px; color:var(--ink-dim);"></div>
+      </div>
+      <div class="modal-f">
+        <button id="copy">Copy text</button>
+        <div style="flex:1"></div>
+        <button class="ghost" id="next">Next ▶</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const chips = [...document.querySelectorAll('.chip')];
+  const dlg = document.getElementById('dlg');
+  const dlgTitle = document.getElementById('dlgTitle');
+  const dlgText = document.getElementById('dlgText');
+  const controlZone = document.getElementById('controlZone');
+  const btnClose = document.getElementById('close');
+  const btnCopy = document.getElementById('copy');
+  const btnNext = document.getElementById('next');
+const oldNotify = controlZone.querySelector('.notify'); 
+  if(oldNotify) oldNotify.remove();
+
+// Mock states
+  let mockSupply = 1000000;
+  let mockLP = 500000;
+  let userTokens = 1000;
+  let lastBuyer = "0xABCD";
+  let ponziBalance = 100;
+  let apy = 1; // 1% daily
+  const defaultPumpPercent = 1;
+  let pumpPrice = 100;
+
+    let idx = 0;
+
+    function openModal(i){
+      idx = i;
+      const el = chips[idx];
+      dlgTitle.textContent = `${el.dataset.title}`;
+      dlgText.textContent = el.dataset.text;
+      controlZone.innerHTML = ''; // reset
+    clearInterval(gambleTimer);
+    clearInterval(reaperTimer);
+
+ // Dispatch mechanic
+    switch (el.dataset.kind) {
+      case 'burn':
+        installBurn();
+        break;
+      case 'auto':
+        installAutoLP();
+        break;
+      case 'ponzi':
+        installPonzi();
+        break;
+      case 'pump':
+        installPump();
+        break;
+      case 'reaper':
+        installReaper();
+        break;
+      case 'gamble':
+        installGamble();
+        break;
+    }
+
+    if(!dlg.open) dlg.showModal();
+  }
+
+
+    chips.forEach((el,i)=>{
+      el.addEventListener('click',()=>openModal(i));
+    });
+
+    btnClose.addEventListener('click',()=>dlg.close());
+
+    btnCopy.addEventListener('click', async ()=>{
+      try{ await navigator.clipboard.writeText(dlgText.textContent); btnCopy.textContent = 'Copied ✓'; setTimeout(()=>btnCopy.textContent='Copy text',1200); }catch(e){ alert('Copy failed'); }
+    });
+
+    btnNext.addEventListener('click',()=>{
+      openModal((idx+1)%chips.length);
+    });
+
+// Mechanic implementations
+  function installBurn() {
+    controlZone.innerHTML = `<p>Supply: ${mockSupply} $AIR</p><button id="burnBtn">Execute Burn</button>`;
+    document.getElementById('burnBtn').onclick = ()=>{
+      let b = Math.floor(mockSupply * 0.01);
+      mockSupply -= b;
+      controlZone.querySelector('p').textContent = `Burned ${b} $AIR New supply: ${mockSupply} $AIR`;
+    };
+  }
+
+  function installAutoLP() {
+    controlZone.innerHTML = `<p>LP: ${mockLP} AIR/ETH</p><button id="autoBtn">Run Auto LP</button>`;
+    document.getElementById('autoBtn').onclick = ()=>{
+      let add = Math.floor(userTokens * 0.1);
+      mockLP += add;
+      controlZone.querySelector('p').textContent = `Added ${add} AIR/ETH to LP. New LP: ${mockLP} AIR/ETH`;
+    };
+  }
+
+  function installPonzi() {
+    controlZone.innerHTML = `<p>Ponzi Balance: ${ponziBalance} $AIR</p><button id="ponziBtn">Accumulate Daily</button>`;
+    document.getElementById('ponziBtn').onclick = ()=>{
+      ponziBalance *= 1 + apy/100;
+      ponziBalance = +ponziBalance.toFixed(2);
+      controlZone.querySelector('p').textContent = `New Balance: ${ponziBalance} $AIR`;
+    };
+  }
+
+  function installPump() {
+    controlZone.innerHTML = `<p>Price: $${pumpPrice}</p><button id="pumpBtn">Pump +${defaultPumpPercent}%</button>`;
+    document.getElementById('pumpBtn').onclick = ()=>{
+      pumpPrice *= 1 + defaultPumpPercent/100;
+      pumpPrice = +pumpPrice.toFixed(2);
+      controlZone.querySelector('p').textContent = `New Price: $${pumpPrice}`;
+    };
+  }
+
+  let reaperTimer = null;
+  function installReaper() {
+    controlZone.innerHTML = `<p id="reaperTimer"></p><button id="avoidBtn">Say GM!</button>`;
+    let t = 10;
+    const p = controlZone.querySelector('#reaperTimer');
+    p.textContent = `Survive for 10s`;
+    document.getElementById('avoidBtn').onclick = ()=>{ t = 10; };
+    reaperTimer = setInterval(()=>{
+      t--; p.textContent = `Survive for ${t}s`;
+      if(t <= 0){ clearInterval(reaperTimer);
+	showNotification('You died!');}
+    }, 1000);
+  }
+
+function showNotification(msg) {
+  let notify = controlZone.querySelector('.notify');
+  if(!notify){
+    notify = document.createElement('p');
+    notify.className = 'notify';
+    notify.style.marginTop = '12px';
+    notify.style.fontSize = '20px';
+    notify.style.color = 'var(--accent)';
+    controlZone.appendChild(notify);
+  }
+  notify.textContent = msg;
+}
+
+// Helper function to show toast inside modal
+function showToast(msg) {
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.position = 'absolute';
+  toast.style.top = '12px';
+  toast.style.right = '12px';
+  toast.style.background = 'var(--accent)';
+  toast.style.color = '#fff';
+  toast.style.padding = '8px 14px';
+  toast.style.borderRadius = '10px';
+  toast.style.fontFamily = '"VT323", monospace';
+  toast.style.fontSize = '18px';
+  toast.style.boxShadow = '0 4px 12px rgba(0,0,0,.2)';
+  toast.style.zIndex = 999;
+  toast.style.opacity = 0;
+  toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+  
+  dlg.appendChild(toast);}
+
+
+// Animate in
+  requestAnimationFrame(() => {
+    toast.style.opacity = 1;
+    toast.style.transform = 'translateY(0)';
+  });
+
+  let gambleTimer = null;
+  function installGamble() {
+    controlZone.innerHTML = `<p>Last buyer: ${lastBuyer}</p><p id="gambleTimer"></p>`;
+    let t=10;
+    const pt = controlZone.querySelector('#gambleTimer');
+    pt.textContent = `Reward in ${t}s`;
+    gambleTimer = setInterval(()=>{
+      t--; pt.textContent = `Reward in ${t}s`;
+      if(t <= 0){ clearInterval(gambleTimer); showNotification(`${lastBuyer} wins reward!`);}
+    }, 1000);
+  }
+
+
+    // keyboard shortcuts
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape' && dlg.open) dlg.close();
+    });
+  </script>
+</body>
+</html>
